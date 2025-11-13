@@ -5,7 +5,10 @@ import Combine
 class PokemonListViewModel: ObservableObject {
     @Published var pokemonList: [Pokemon] = []
     @Published var isLoading: Bool = false
+    @Published var isLoadingNextPage: Bool = false
+    @Published var hasMore: Bool = true
     @Published var errorMessage: String? = nil
+    
     
     // Cache sprite URLs keyed by Pokemon ID
     @Published private(set) var spriteURLByID: [Int: URL] = [:]
@@ -14,17 +17,41 @@ class PokemonListViewModel: ObservableObject {
     private var limit: Int = 20
     
     private let apiService = APIService()
-    
-    func loadPokemonlist() async {
-        self.isLoading = true
+
+    func resetAndLoadFirstPage() async {
+        isLoading = true
+        isLoadingNextPage = false
+        errorMessage = nil
+        hasMore = true
+        currentOffset = 0
+        pokemonList = []
+        spriteURLByID = [:]
+        defer { isLoading = false }
+        
         do {
             let pokemon = try await apiService.fetchPokemonList(limit: limit, offset: currentOffset)
-            self.pokemonList.append(contentsOf: pokemon)
-            self.currentOffset += self.limit // Move offset for the next call
-            self.isLoading = false
+            pokemonList = pokemon
+            currentOffset += limit
+            hasMore = pokemon.count == limit
         } catch {
-            self.errorMessage = error.localizedDescription
-            self.isLoading = false
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    // Load the next page if available; guards prevent overlapping calls
+    func loadNextPage() async {
+        guard hasMore, !isLoading, !isLoadingNextPage else { return }
+        isLoadingNextPage = true
+        errorMessage = nil
+        defer { isLoadingNextPage = false }
+        
+        do {
+            let pokemon = try await apiService.fetchPokemonList(limit: limit, offset: currentOffset)
+            pokemonList.append(contentsOf: pokemon)
+            currentOffset += limit
+            hasMore = pokemon.count == limit
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
     
