@@ -1,10 +1,3 @@
- //
-//  ContentView.swift
-//  Pokedex
-//
-//  Created by Tri Nguyen on 11/11/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {

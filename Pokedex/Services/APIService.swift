@@ -9,7 +9,7 @@ class APIService {
         
         // Error handling for invalid URL
         guard let url = URL(string: urlString) else {
-            throw NetworkError.invalidURL
+            fatalError("Invalid URL")
         }
         
         // Make network request using URLSession
@@ -25,7 +25,7 @@ class APIService {
         let urlString = "\(baseURL)\(pokemonID)"
         
         guard let url = URL(string: urlString) else {
-            throw NetworkError.invalidURL
+            fatalError("Invalid URL")
         }
         
         let (data, _) = try await URLSession.shared.data(from: url)
@@ -33,11 +33,5 @@ class APIService {
         let decodedResponse = try JSONDecoder().decode(PokemonDetails.self, from: data)
         return decodedResponse
     }
-}
-
-// Error handling for network issues
-enum NetworkError: Error {
-    case invalidURL
-    case noData
 }
 
