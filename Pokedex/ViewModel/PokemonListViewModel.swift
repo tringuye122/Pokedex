@@ -9,15 +9,17 @@ class PokemonListViewModel: ObservableObject {
     @Published var hasMore: Bool = true
     @Published var errorMessage: String? = nil
     
-    
     // Cache sprite URLs keyed by Pokemon ID
     @Published private(set) var spriteURLByID: [Int: URL] = [:]
+    // Cache types keyed by Pokemon ID (array of type names, ordered by slot)
+    @Published private(set) var typesByID: [Int: [String]] = [:]
     
     private var currentOffset: Int = 0
     private var limit: Int = 20
     
     private let apiService = APIService()
 
+    // Loads only the initial page
     func resetAndLoadFirstPage() async {
         isLoading = true
         isLoadingNextPage = false
@@ -26,6 +28,7 @@ class PokemonListViewModel: ObservableObject {
         currentOffset = 0
         pokemonList = []
         spriteURLByID = [:]
+        typesByID = [:]
         defer { isLoading = false }
         
         do {
@@ -57,9 +60,29 @@ class PokemonListViewModel: ObservableObject {
     
     // Parse the ID from the Pokemon.url (e.g., .../pokemon/25/ -> 25)
     func id(for pokemon: Pokemon) -> Int? {
-        // Split by "/" and take the last non-empty component
         let components = pokemon.url.split(separator: "/").compactMap { Int($0) }
         return components.last
+    }
+    
+    // Fetch details once and populate both caches
+    private func ensureDetailsCached(for id: Int) async -> Bool {
+        // If both sprite and types are already cached
+        if spriteURLByID[id] != nil, typesByID[id] != nil {
+            return true
+        }
+        do {
+            let details = try await apiService.fetchPokemonDetails(pokemonID: id)
+            // Cache sprite URL
+            if let url = URL(string: details.sprites.front_default) {
+                spriteURLByID[id] = url
+            }
+            // Cache types (ordered by slot)
+            let sortedTypes = details.types.sorted(by: { $0.slot < $1.slot }).map { $0.type.name }
+            typesByID[id] = sortedTypes
+            return true
+        } catch {
+            return false
+        }
     }
     
     // Public accessor to get (and fetch if needed) the sprite URL for a Pokemon
@@ -68,16 +91,17 @@ class PokemonListViewModel: ObservableObject {
         if let cached = spriteURLByID[id] {
             return cached
         }
-        do {
-            let details = try await apiService.fetchPokemonDetails(pokemonID: id)
-            if let url = URL(string: details.sprites.front_default) {
-                spriteURLByID[id] = url
-                return url
-            }
-        } catch {
-            // You can optionally set errorMessage here, but avoid spamming on per-card fetches
+        let ok = await ensureDetailsCached(for: id)
+        return ok ? spriteURLByID[id] : nil
+    }
+
+    // Accessor to get cached types for a list item; triggers background fetch if missing
+    func types(for pokemon: Pokemon) async -> [String] {
+        guard let id = id(for: pokemon) else { return [] }
+        if let cached = typesByID[id] {
+            return cached
         }
-        return nil
+        let ok = await ensureDetailsCached(for: id)
+        return ok ? (typesByID[id] ?? []) : []
     }
 }
-
