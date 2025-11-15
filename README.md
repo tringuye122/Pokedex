@@ -122,7 +122,7 @@ When is it read/written?
   - PokemonSpecies.swift (flavor text entries)
 
 ## Demo
-
+![Pokedex_Demo (1)](https://github.com/user-attachments/assets/7fe423f4-a551-432c-9eff-70ab0456aeb5)
 
 Notes:
 - The app uses the public PokeAPI; no API key required
