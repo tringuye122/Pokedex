@@ -153,7 +153,7 @@ struct PokemonDetailView: View {
                                                     .font(.subheadline.monospacedDigit())
                                                     .foregroundStyle(.white.opacity(0.95))
                                             }
-                                            
+                                            // Stat bar
                                             GeometryReader { geo in
                                                 let maxWidth = geo.size.width
                                                 let normalized = min(CGFloat(stat.base_stat) / 200.0, 1.0)
