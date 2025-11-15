@@ -53,7 +53,7 @@ struct PokemonCardView: View {
                     }
                 }
                 .frame(height: 80)
-
+                
                 Text(pokemon.name.capitalized)
                     .font(.headline)
                     .foregroundStyle(.white)
